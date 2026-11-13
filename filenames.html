@@ -1,0 +1,215 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Restuanians Names</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #fff8e5;
+        padding: 30px;
+        color: #333;
+    }
+
+    .container {
+        max-width: 625px;
+        margin: auto;
+        background: white;
+        padding: 30px;
+        border-radius: 18px;
+        box-shadow: 0 4px 15px #ddd;
+    }
+
+    h1 {
+        color: #dc9c00;
+        text-align: center;
+    }
+
+    input, button {
+        width: 100%;
+        padding: 15px;
+        margin-top: 12px;
+        box-sizing: border-box;
+        font-size: 16px;
+    }
+
+    button {
+        background: #eaaa00;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    li {
+        background: #fff5d5;
+        padding: 12px;
+        margin: 8px 0;
+        border-radius: 6px;
+    }
+
+    #status {
+        margin-top: 15px;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Restuanians Names</h1>
+
+    <h3>Family Members</h3>
+
+    <ul id="nameList">
+        <li>Loading names...</li>
+    </ul>
+
+    <hr>
+
+    <h3>Add New Name</h3>
+
+    <input
+        type="text"
+        id="newName"
+        placeholder="Enter a new name"
+        maxlength="100"
+    >
+
+    <button id="addButton" onclick="addName()">
+        Add Name
+    </button>
+
+    <p id="status" role="status"></p>
+
+</div>
+
+<script>
+
+// InfinityFree API
+const API = "https://restuanians-databases.infinityfree.me";
+
+// Retrieve names from InfinityFree
+async function loadNames() {
+
+    const list = document.getElementById("nameList");
+    const status = document.getElementById("status");
+
+    try {
+
+        const response = await fetch(API + "/get_names.php");
+
+        if (!response.ok) {
+            throw new Error("Server error: " + response.status);
+        }
+
+        const names = await response.json();
+
+        if (!Array.isArray(names)) {
+            throw new Error("Invalid database response.");
+        }
+
+        list.replaceChildren();
+
+        if (names.length === 0) {
+            list.textContent = "No names found.";
+            return;
+        }
+
+        names.forEach(person => {
+
+            const li = document.createElement("li");
+
+            li.textContent = person.Name;
+
+            list.appendChild(li);
+
+        });
+
+        status.textContent = "";
+
+    } catch (error) {
+
+        console.error("Database error:", error);
+
+        list.textContent = "Unable to connect to database.";
+
+        status.textContent = error.message;
+
+    }
+}
+
+// Add new name to InfinityFree
+async function addName() {
+
+    const input = document.getElementById("newName");
+    const status = document.getElementById("status");
+    const button = document.getElementById("addButton");
+
+    const name = input.value.trim();
+
+    if (!name) {
+        status.textContent = "Please enter a name.";
+        return;
+    }
+
+    button.disabled = true;
+
+    try {
+
+        const response = await fetch(API + "/add_name.php", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                Name: name
+            })
+
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || "Unable to save name.");
+        }
+
+        input.value = "";
+
+        await loadNames();
+
+        status.textContent = "Name added successfully!";
+
+    } catch (error) {
+
+        console.error("Save error:", error);
+
+        status.textContent = error.message;
+
+    } finally {
+
+        button.disabled = false;
+
+    }
+}
+
+// Load database records when page opens
+loadNames();
+
+</script>
+
+</body>
+</html>
